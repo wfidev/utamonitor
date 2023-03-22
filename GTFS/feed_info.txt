@@ -1,0 +1,2 @@
+feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version
+Utah Transit Authority,http://www.rideuta.com,en,20221211,20230415,2022 DEC_20230302
