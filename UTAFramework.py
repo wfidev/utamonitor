@@ -1,4 +1,5 @@
 import requests
+from geopy.geocoders import Nominatim
 
 class UTABase:
     def __init__(self):                 
@@ -29,7 +30,46 @@ class Route(UTABase):
     def GetStatus(self, Token):
         uri = Frontrunner.GetApi(AuthToken)
         r = requests.get(uri)
-        return r.json()
+        return r
+    
+    def GetTrains(self, Token):
+        geolocator = Nominatim(user_agent="geoapiExercises")
+        Status = self.GetStatus(Token).json()
+        Vehicles = Status['serviceDelivery']['vehicleMonitoringDelivery']['vehicleActivity']
+        for v in Vehicles:
+            mva = v['monitoredVehicleJourney']
+            latitude =  mva['vehicleLocation']['latitude']
+            longitude = mva['vehicleLocation']['longitude']
+            location = geolocator.reverse(f"{latitude},{longitude}")
+            address = location.raw['address']
+            Building = address.get('building', '')
+            HouseNum = address.get('house_number', '')
+            Road = address.get('road', '')
+            City = address.get('city', '')
+            Zip = address.get('postcode')
+            #print(address.keys())
+            #print(address)
+            print(f"Extensions:            {mva['extensions']}")
+            print(f"Line reference:        {mva['lineRef']}")
+            print(f"Journey reference:     {mva['framedVehicleJourneyRef']}")
+            print(f"Line name:             {mva['publishedLineName']}")
+            print(f"Direction:             {mva['directionName']}")
+            print(f"Origin:                {mva['originRef']}")
+            print(f"Destination:           {mva['destinationRef']}")
+            print(f"Destination name:      {mva['destinationName']}")
+            print(f"Monitored:             {mva['monitored']}")
+            print(f"Location:              {Building}, {HouseNum} {Road}, {City} {Zip}")
+            print(f"Bearing:               {mva['bearing']}")
+            print(f"Progress Status:       {mva['progressStatus']}")
+            print(f"Course:                {mva['courseOfJourneyRef']}")
+            print(f"Vehicle Reference:     {mva['vehicleRef']}")
+            print()
+            print()
+
+        #status['serviceDelivery']['vehicleMonitoringDelivery']['vehicleActivity'][0]['monitoredVehicleJourney'].keys()
+        #dict_keys(['extensions', 'lineRef', 'framedVehicleJourneyRef', 'publishedLineName', 'directionName', 'originRef', 'destinationRef', 'destinationName', 
+        #           'monitored', 'vehicleLocation', 'bearing', 'progressStatus', 'courseOfJourneyRef', 'vehicleRef'])
+        return
 
 def GetFavoriteRoute(Label):
     r = Route()
@@ -48,6 +88,9 @@ def GetFavoriteRoute(Label):
 
     return r
 
+def PrintStatus(StatusJson):
+    j = StatusJson
+
 # Load in a couple of routes
 #
 r834 = GetFavoriteRoute("834")
@@ -64,7 +107,6 @@ print(AuthToken)
 
 # Get the status for the frontrunner
 #
-j = Frontrunner.GetStatus(AuthToken)
-print(j)
+Frontrunner.GetTrains(AuthToken)
 
 
