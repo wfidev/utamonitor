@@ -23,22 +23,13 @@ class Route(UTABase):
     def __repr__(self):
         return f"Route {self.GetValue('shortname')} ({self.GetValue('longname')})"
     
-class Stop(UTABase):
-    def __init__(self):
-        super().__init__()
-        self.SetValue("type", "Stop")
-        self.SetValue("id", None)
-        self.SetValue("code", None)
-        self.SetValue("name", None)
-        self.SetValue("description", None)
-        self.SetValue("url", None)
-        self.SetValue("latitude", None)
-        self.SetValue("longitude", None)
-        self.SetValue("zone", None)
-        self.SetValue("locationtype", None)
-        self.SetValue("parentstation", None)
-        self.SetValue("timezone", None)
-        self.SetValue("wheelchair", False)
+    def GetApi(self, Token):
+        return f"http://api.rideuta.com/utartapi/vehiclemonitor/ByRoute?route={self.GetValue('shortname')}&onwardcalls=true&usertoken={Token}&format=json"
+
+    def GetStatus(self, Token):
+        uri = Frontrunner.GetApi(AuthToken)
+        r = requests.get(uri)
+        return r.json()
 
 def GetFavoriteRoute(Label):
     r = Route()
@@ -57,8 +48,23 @@ def GetFavoriteRoute(Label):
 
     return r
 
+# Load in a couple of routes
+#
 r834 = GetFavoriteRoute("834")
 Frontrunner = GetFavoriteRoute("Frontrunner")
-
 print(r834)
 print(Frontrunner)
+
+# Load in the token
+#
+with open('token.cfg') as f:
+    lines = f.readlines()
+AuthToken = lines[0].strip()
+print(AuthToken)
+
+# Get the status for the frontrunner
+#
+j = Frontrunner.GetStatus(AuthToken)
+print(j)
+
+
