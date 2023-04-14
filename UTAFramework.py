@@ -28,30 +28,36 @@ class Vehicle:
         self.bearing = bearing
         self.status = status
         self.ref = ref
+        self.relativedirection = "Unkonwn"
+        self.relativedistance = "Unknown"
 
     def __repr__(self):
-        return f"{self.route.GetNumber()} {self.route.GetType()} #{self.ref}: {self.status} traveling {self.direction} to {self.destination} at {self.speed:.1f} mph bearing {self.bearing:.0f}, {self.DescribeLocation()}"
+        speed = f"{self.speed:.1f} mph"
+        destination = self.destination[0:9]
+        status = self.status[0:6]
+        return f"{self.route.GetNumber():<5}{self.route.GetType():<6}#{self.ref:<5}{status:<7}{self.direction:<12}{destination:<10}{speed:<10}{self.DescribeLocation()}"
 
     def DescribeLocation(self):
-        MurrayCentral = [40.659902519348506, -111.89437902728629]
-        
-        R = 6373.0  # Approximate radius of earth in km
-        lat1 = radians(MurrayCentral[0])
-        lon1 = radians(MurrayCentral[1])
-        lat2 = radians(float(self.location[0]))
-        lon2 = radians(float(self.location[1]))
+        diststr = f"{self.relativedistance:.1f}"
+        return f"{diststr:<5} miles {self.relativedirection} of Murray Central"
 
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
+def CalcRelativeToMC(vehicle):
+    MurrayCentral = [40.659902519348506, -111.89437902728629]
+    R = 6373.0  # Approximate radius of earth in km
 
-        a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    lat1 = radians(MurrayCentral[0])
+    lon1 = radians(MurrayCentral[1])
+    lat2 = radians(float(vehicle.location[0]))
+    lon2 = radians(float(vehicle.location[1]))
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    distancekm = R * c                          # distance in kilometers
+    distance = distancekm * 0.621371            # 0.621371 miles in a kilometer
 
-        distancekm = R * c                          # distance in kilometers
-        distance = distancekm * 0.621371            # 0.621371 miles in a kilometer
-        direction = 'north' if lat1 < lat2 else 'south'
-
-        return f"{distance:.1f} miles {direction} of Murray Central"
+    direction = 'north' if lat1 < lat2 else 'south'
+    return direction, distance
 
 def GetMvaValue(mva, key, key2, default):
     if key in mva:
@@ -85,8 +91,24 @@ def GetVehicleStatus(route, authtoken):
         ref = GetMvaValue(mva, 'vehicleRef', 'value', 'Unknown')
         if 'monitoredCall' in mva:
             v = Vehicle(route, location, speed, direction, destination, bearing, status, ref)
+            v.relativedirection, v.relativedistance = CalcRelativeToMC(v)
             VehicleStatus.append(v)
-    return  sorted(VehicleStatus, key=lambda x: x.direction, reverse=False)
+    return sorted(VehicleStatus, key=lambda x: x.relativedirection, reverse=False)
+
+def SortRelativeToMC(VehicleStatus):
+    NorthList = []
+    SouthList = []
+
+    for v in VehicleStatus:
+        if v.relativedirection == 'north':
+            NorthList.append(v)
+        else:
+            SouthList.append(v)
+
+    N = sorted(NorthList, key=lambda x: x.relativedistance, reverse=False)
+    S = sorted(SouthList, key=lambda x: x.relativedistance, reverse=False)
+
+    return N + S
 
 FavoriteRoutes = {
     750: Route(41065, 750, "Frontrunner", "Train"),
@@ -111,7 +133,7 @@ AuthToken = lines[0].strip()
 
 # Get the status for the frontrunner
 #
-VehicleStatus = GetVehicleStatus(Frontrunner, AuthToken)
+VehicleStatus = SortRelativeToMC(GetVehicleStatus(Frontrunner, AuthToken))
 print(f"{len(VehicleStatus)} active Frontrunner trains:")
 print(f"----------------")
 for Train in VehicleStatus:
