@@ -70,11 +70,10 @@ def GetVehicleStatus(route, authtoken):
     j = requests.get(apiuri).json()
     statuses = j['serviceDelivery']['vehicleMonitoringDelivery']['vehicleActivity']
     VehicleStatus = []
-    GPSDuplicates = {}
  
     for s in statuses:
         mva = s['monitoredVehicleJourney']
-        print(mva)
+        #print(mva)
         latitude =  mva['vehicleLocation']['latitude']
         longitude = mva['vehicleLocation']['longitude']
         location = [latitude, longitude]
@@ -84,12 +83,9 @@ def GetVehicleStatus(route, authtoken):
         destination = GetMvaValueFromList(mva, 'destinationName', 'value', 'Unknown')
         status = GetMvaValueFromList(mva, 'progressStatus', 'value', "On time")
         ref = GetMvaValue(mva, 'vehicleRef', 'value', 'Unknown')
-        if direction != 'Unknown':
-            locationstr = str(location[0]) + str(location[0])
-            if locationstr not in GPSDuplicates:
-                v = Vehicle(route, location, speed, direction, destination, bearing, status, ref)
-                VehicleStatus.append(v)
-                GPSDuplicates[locationstr] = True
+        if 'monitoredCall' in mva:
+            v = Vehicle(route, location, speed, direction, destination, bearing, status, ref)
+            VehicleStatus.append(v)
     return  sorted(VehicleStatus, key=lambda x: x.direction, reverse=False)
 
 FavoriteRoutes = {
